@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 venv/
 .env
+.env.*
+!.env.example
 
 # --- PyTorch/ML 모델 및 데이터 ---
 *.pt

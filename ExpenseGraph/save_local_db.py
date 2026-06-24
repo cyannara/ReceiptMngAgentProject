@@ -13,8 +13,9 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 import tempfile
-from urllib.parse import urlparse
+from urllib.parse import quote_plus, urlparse
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional
+from dotenv import load_dotenv
 
 if TYPE_CHECKING:
 	# Optional type-only import so save_local_db can align with backend state keys.
@@ -26,8 +27,40 @@ except ImportError:  # pragma: no cover - optional dependency for AWS MySQL.
 	pymysql = None
 
 
+load_dotenv()
+
 DEFAULT_DB_PATH = str(Path(__file__).with_name("receipt_agent.db"))
-DEFAULT_DB_TARGET = os.getenv("DATABASE_URL", DEFAULT_DB_PATH)
+
+
+def _resolve_db_target(default_target: str = DEFAULT_DB_PATH) -> str:
+	"""Resolve DB target using DATABASE_URL, then AWS env vars, else SQLite."""
+	database_url = os.getenv("DATABASE_URL", "").strip()
+	if database_url:
+		return database_url
+
+	mysql_host = os.getenv("AWS_MYSQL_HOST", "").strip()
+	mysql_user = os.getenv("AWS_MYSQL_USER", "").strip()
+	mysql_password = os.getenv("AWS_MYSQL_PASSWORD", "").strip()
+	mysql_database = os.getenv("AWS_MYSQL_DATABASE", "").strip()
+	mysql_port = os.getenv("AWS_MYSQL_PORT", "3306").strip() or "3306"
+
+	if mysql_host and mysql_user and mysql_password and mysql_database:
+		return (
+			f"mysql://{quote_plus(mysql_user)}:{quote_plus(mysql_password)}"
+			f"@{mysql_host}:{mysql_port}/{mysql_database}"
+		)
+
+	return default_target
+
+
+DEFAULT_DB_TARGET = _resolve_db_target()
+
+
+def _effective_db_target(db_target: Optional[str] = None) -> str:
+	"""Return explicit target when provided, otherwise resolve from current env."""
+	if db_target and str(db_target).strip():
+		return str(db_target).strip()
+	return _resolve_db_target()
 
 
 def _is_mysql_target(db_target: str) -> bool:
@@ -58,8 +91,9 @@ def _connect_mysql(db_target: str):
 	)
 
 
-def get_connection(db_target: str = DEFAULT_DB_TARGET):
+def get_connection(db_target: Optional[str] = None):
 	"""Create a SQLite or MySQL connection based on the target string."""
+	db_target = _effective_db_target(db_target)
 	if _is_mysql_target(db_target):
 		return _connect_mysql(db_target)
 
@@ -196,12 +230,36 @@ def _now_str() -> str:
 	return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
+def _to_int(value: Any, default: int = 0) -> int:
+	"""Safely parse int from numbers/strings like '12,000원'."""
+	if value is None:
+		return default
+	if isinstance(value, bool):
+		return int(value)
+	if isinstance(value, (int, float)):
+		return int(value)
+
+	text = str(value).strip()
+	if not text:
+		return default
+
+	filtered = "".join(ch for ch in text if ch.isdigit() or ch == "-")
+	if not filtered or filtered == "-":
+		return default
+
+	try:
+		return int(filtered)
+	except ValueError:
+		return default
+
+
 def _normalize_expense_payload(expense_data: Dict[str, Any]) -> Dict[str, Any]:
 	"""Normalize backend/main and legacy payload keys to one save schema."""
 	now = _now_str()
 	purchased_at = str(
 		expense_data.get("purchased_at")
 		or expense_data.get("spent_at")
+		or expense_data.get("approved_at")
 		or expense_data.get("reg_date")
 		or now
 	)
@@ -209,24 +267,41 @@ def _normalize_expense_payload(expense_data: Dict[str, Any]) -> Dict[str, Any]:
 	return {
 		"user_id": str(expense_data.get("user_id") or expense_data.get("id") or "demo-user"),
 		"name": str(expense_data.get("name") or expense_data.get("user_id") or expense_data.get("id") or "demo-user"),
-		"store_name": str(expense_data.get("store_name") or expense_data.get("merchant") or ""),
+		"store_name": str(
+			expense_data.get("store_name")
+			or expense_data.get("merchant")
+			or expense_data.get("store")
+			or ""
+		),
 		"purchased_at": purchased_at,
-		"total_amount": int(expense_data.get("total_amount") or expense_data.get("amount") or 0),
-		"payment_method": str(expense_data.get("payment_method") or ""),
+		"total_amount": _to_int(expense_data.get("total_amount") or expense_data.get("amount") or 0, 0),
+		"payment_method": str(expense_data.get("payment_method") or expense_data.get("pay_method") or ""),
 		"category": str(expense_data.get("category") or "기타"),
-		"memo": str(expense_data.get("memo") or ""),
-		"raw_text": str(expense_data.get("raw_text") or expense_data.get("ocr_raw_text") or ""),
+		"memo": str(expense_data.get("memo") or expense_data.get("description") or ""),
+		"raw_text": str(
+			expense_data.get("raw_text")
+			or expense_data.get("ocr_raw_text")
+			or expense_data.get("ocr_text")
+			or ""
+		),
 		"notion_page_id": str(expense_data.get("notion_page_id") or ""),
-		"items": expense_data.get("items") or [],
-		"addr": str(expense_data.get("addr") or ""),
-		"tel": str(expense_data.get("tel") or ""),
-		"reg_date": str(expense_data.get("reg_date") or now),
-		"detected_people_count": int(expense_data.get("detected_people_count") or 1),
-		"per_person_amount": int(
+		"items": expense_data.get("items") or expense_data.get("line_items") or [],
+		"addr": str(expense_data.get("addr") or expense_data.get("address") or ""),
+		"tel": str(
+			expense_data.get("tel")
+			or expense_data.get("telephone")
+			or expense_data.get("phone")
+			or ""
+		),
+		"reg_date": str(expense_data.get("reg_date") or expense_data.get("registered_at") or now),
+		"detected_people_count": _to_int(expense_data.get("detected_people_count") or expense_data.get("people_count") or 1, 1),
+		"per_person_amount": _to_int(
 			expense_data.get("per_person_amount")
+			or expense_data.get("unit_amount")
 			or expense_data.get("total_amount")
 			or expense_data.get("amount")
-			or 0
+			or 0,
+			0,
 		),
 	}
 
@@ -238,8 +313,8 @@ def _normalize_items(items: Optional[Iterable[Dict[str, Any]]]) -> List[Dict[str
 
 	for item in items:
 		item_name = str(item.get("item_name") or item.get("name") or "기타")
-		amount = int(item.get("amount") or item.get("total") or 0)
-		quantity = int(item.get("quantity") or item.get("count") or 1)
+		amount = _to_int(item.get("amount") or item.get("total") or 0, 0)
+		quantity = _to_int(item.get("quantity") or item.get("count") or 1, 1)
 		normalized.append(
 			{
 				"item_name": item_name,
@@ -290,7 +365,7 @@ def _rollback(conn: Any) -> None:
 	conn.rollback()
 
 
-def save_local_db(expense_data: Dict[str, Any], db_path: str = DEFAULT_DB_TARGET) -> Dict[str, Any]:
+def save_local_db(expense_data: Dict[str, Any], db_path: Optional[str] = None) -> Dict[str, Any]:
 	"""Save one structured expense record and its items.
 
 	Expected keys in expense_data:
@@ -309,6 +384,7 @@ def save_local_db(expense_data: Dict[str, Any], db_path: str = DEFAULT_DB_TARGET
 			"error": f"Missing required fields: {', '.join(missing)}",
 		}
 
+	db_path = _effective_db_target(db_path)
 	conn = get_connection(db_path)
 	try:
 		ensure_schema(conn)
@@ -513,8 +589,9 @@ def _print_db_summary(db_path: str) -> None:
 		conn.close()
 
 
-def get_latest_expense(db_path: str = DEFAULT_DB_TARGET) -> Optional[Dict[str, Any]]:
+def get_latest_expense(db_path: Optional[str] = None) -> Optional[Dict[str, Any]]:
 	"""Return the most recently inserted expense row."""
+	db_path = _effective_db_target(db_path)
 	conn = get_connection(db_path)
 	try:
 		ensure_schema(conn)
@@ -541,8 +618,9 @@ def get_latest_expense(db_path: str = DEFAULT_DB_TARGET) -> Optional[Dict[str, A
 		conn.close()
 
 
-def get_expense_items(expense_id: int, db_path: str = DEFAULT_DB_TARGET) -> List[Dict[str, Any]]:
+def get_expense_items(expense_id: int, db_path: Optional[str] = None) -> List[Dict[str, Any]]:
 	"""Return all item rows for a saved expense."""
+	db_path = _effective_db_target(db_path)
 	conn = get_connection(db_path)
 	try:
 		ensure_schema(conn)
@@ -567,8 +645,9 @@ def get_expense_items(expense_id: int, db_path: str = DEFAULT_DB_TARGET) -> List
 		conn.close()
 
 
-def test_connection(db_target: str = DEFAULT_DB_TARGET) -> Dict[str, Any]:
+def test_connection(db_target: Optional[str] = None) -> Dict[str, Any]:
 	"""Test a database connection and basic schema access."""
+	db_target = _effective_db_target(db_target)
 	conn = get_connection(db_target)
 	try:
 		ensure_schema(conn)

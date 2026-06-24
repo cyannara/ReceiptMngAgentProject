@@ -4,6 +4,7 @@ import base64
 import tempfile
 from datetime import datetime
 from typing import Annotated, TypedDict, Literal, List, Dict, Any
+from urllib.parse import quote_plus
 from dotenv import load_dotenv
 
 # FastAPI 컴포넌트
@@ -65,6 +66,27 @@ class ReceiptAgentState(TypedDict):
     category_matched_rules: List[str]
 
 POLICY_RAG_SERVICE: PolicyRagService | None = None
+
+
+def _resolve_db_target(default_target: str) -> str:
+    """Resolve DB target from env with AWS fallback when DATABASE_URL is absent."""
+    database_url = os.getenv("DATABASE_URL", "").strip()
+    if database_url:
+        return database_url
+
+    mysql_host = os.getenv("AWS_MYSQL_HOST", "").strip()
+    mysql_user = os.getenv("AWS_MYSQL_USER", "").strip()
+    mysql_password = os.getenv("AWS_MYSQL_PASSWORD", "").strip()
+    mysql_database = os.getenv("AWS_MYSQL_DATABASE", "").strip()
+    mysql_port = os.getenv("AWS_MYSQL_PORT", "3306").strip() or "3306"
+
+    if mysql_host and mysql_user and mysql_password and mysql_database:
+        return (
+            f"mysql://{quote_plus(mysql_user)}:{quote_plus(mysql_password)}"
+            f"@{mysql_host}:{mysql_port}/{mysql_database}"
+        )
+
+    return default_target
 
 
 def get_policy_rag_service() -> PolicyRagService:
@@ -227,7 +249,7 @@ def save_db_node(state: ReceiptAgentState):
         "category_matched_rules": state.get("category_matched_rules", []),
     }
 
-    db_target = os.getenv("DATABASE_URL", DEFAULT_DB_TARGET)
+    db_target = _resolve_db_target(DEFAULT_DB_TARGET)
     save_result = save_local_db(expense_data, db_path=db_target)
     print(
         f"[DB 로그] 저장결과={save_result.get('saved_local_db')} "
