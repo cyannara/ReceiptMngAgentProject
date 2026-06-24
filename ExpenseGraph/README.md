@@ -52,7 +52,7 @@ $env:OPENAI_API_KEY="your-openai-api-key"
 $env:AWS_MYSQL_HOST="13.209.64.184"
 $env:AWS_MYSQL_PORT="3306"
 $env:AWS_MYSQL_USER="root"
-$env:AWS_MYSQL_PASSWORD="your-password"
+$env:AWS_MYSQL_PASSWORD="admin"
 $env:AWS_MYSQL_DATABASE="db"
 ```
 

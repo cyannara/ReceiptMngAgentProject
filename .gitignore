@@ -2,3 +2,4 @@ backend/main_test.py
 .env
 .env.*
 !.env.example
+.DS_Store
