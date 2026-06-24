@@ -13,7 +13,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 import tempfile
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import quote_plus, unquote_plus, urlparse
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional
 from dotenv import load_dotenv
 
@@ -27,7 +27,26 @@ except ImportError:  # pragma: no cover - optional dependency for AWS MySQL.
 	pymysql = None
 
 
-load_dotenv()
+def _load_environment() -> None:
+	"""Load .env from module and project root regardless of cwd."""
+	module_dir = Path(__file__).resolve().parent
+	candidates = [
+		module_dir / ".env",
+		module_dir.parent / ".env",
+		Path.cwd() / ".env",
+	]
+
+	loaded = False
+	for dotenv_path in candidates:
+		if dotenv_path.exists():
+			load_dotenv(dotenv_path=dotenv_path, override=False)
+			loaded = True
+
+	if not loaded:
+		load_dotenv(override=False)
+
+
+_load_environment()
 
 DEFAULT_DB_PATH = str(Path(__file__).with_name("receipt_agent.db"))
 
@@ -79,12 +98,19 @@ def _connect_mysql(db_target: str):
 	if parsed.scheme not in ("mysql", "mysql+pymysql"):
 		raise ValueError(f"Unsupported MySQL URL: {db_target}")
 
+	username = unquote_plus(parsed.username) if parsed.username else "root"
+	password = unquote_plus(parsed.password) if parsed.password else ""
+	database = unquote_plus((parsed.path or "/").lstrip("/"))
+
+	if not database:
+		raise ValueError("MySQL database name is missing in DATABASE_URL")
+
 	return pymysql.connect(
 		host=parsed.hostname or "localhost",
 		port=parsed.port or 3306,
-		user=parsed.username or "root",
-		password=parsed.password or "",
-		database=(parsed.path or "/").lstrip("/"),
+		user=username,
+		password=password,
+		database=database,
 		charset="utf8mb4",
 		autocommit=False,
 		cursorclass=pymysql.cursors.DictCursor,
@@ -732,7 +758,10 @@ def main() -> None:
 	
 	if mysql_host and mysql_user and mysql_password and mysql_database:
 		mysql_port = os.getenv("AWS_MYSQL_PORT", "3306")
-		mysql_url = f"mysql://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_database}"
+		mysql_url = (
+			f"mysql://{quote_plus(mysql_user)}:{quote_plus(mysql_password)}"
+			f"@{mysql_host}:{mysql_port}/{mysql_database}"
+		)
 		print(f"\n[MySQL 저장] {mysql_host}:{mysql_port}/{mysql_database}")
 		try:
 			mysql_result = save_local_db(dummy_data, db_path=mysql_url)
