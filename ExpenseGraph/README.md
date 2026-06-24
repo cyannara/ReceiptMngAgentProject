@@ -43,18 +43,25 @@ pip install torch torchvision torchaudio --index-url [https://download.pytorch.o
 
 ### 환경 변수 세팅
 
-```python
-[System.Environment]::SetEnvironmentVariable("OPENAI_API_KEY", "sk-proj-hCCnUbeL...", "User")
+```powershell
+# 프로젝트 루트의 .env.example을 복사해 .env 파일 생성 후 값 입력
+Copy-Item ..\.env.example ..\.env
+
+# 즉시 세션 반영이 필요하면 아래처럼 설정
+$env:OPENAI_API_KEY="your-openai-api-key"
+$env:AWS_MYSQL_HOST="13.209.64.184"
+$env:AWS_MYSQL_PORT="3306"
+$env:AWS_MYSQL_USER="root"
+$env:AWS_MYSQL_PASSWORD="admin"
+$env:AWS_MYSQL_DATABASE="db"
 ```
 
 ### BackEnd 실행 방법
 
-```python
-# rag 벡터테이블(chroma db 생성)
-python -m app.services.rag_build --build
-
+```powershell
 # 가상환경 상에서 실행
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+cd ..\backend\app
+python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ### FrontEnd 실행 방법
