@@ -49,12 +49,12 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 Copy-Item ..\.env.example ..\.env
 
 # 즉시 세션 반영이 필요하면 아래처럼 설정
-$env:OPENAI_API_KEY="your-openai-api-key"
-$env:AWS_MYSQL_HOST="13.209.64.184"
-$env:AWS_MYSQL_PORT="3306"
-$env:AWS_MYSQL_USER="root"
-$env:AWS_MYSQL_PASSWORD="admin"
-$env:AWS_MYSQL_DATABASE="db"
+$env:OPENAI_API_KEY=
+$env:AWS_MYSQL_HOST=
+$env:AWS_MYSQL_PORT=
+$env:AWS_MYSQL_USER=
+$env:AWS_MYSQL_PASSWORD=
+$env:AWS_MYSQL_DATABASE=
 ```
 ## 필드 설명
     # 기획안 DB 속성 반영
@@ -77,7 +77,7 @@ $env:AWS_MYSQL_DATABASE="db"
 
 ### 카테고리 분류 RAG 생성
 ```sh
-# rag db 생성ㄷ
+# rag db 생성
 cd C:\gitwork\ReceiptMngAgentProject\backend
 python -m app.services.rag_build --build
 
