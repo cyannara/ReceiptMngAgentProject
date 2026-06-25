@@ -146,7 +146,7 @@ AI 응답에는 다음 정보를 포함한다.
 
 ### 3.5 로컬 DB 저장
 
-초기 MVP에서는 분석된 지출 정보는 로컬 DB에 저장하고  SQLite를 사용하고, 준비되면 AWS EC2서버에 MySQL 서버로 확장 가능하게 설계한다.
+초기 MVP에서는 분석된 지출 정보는 로컬 DB에 저장하고  MySQL를 사용하고, 준비되면 AWS EC2서버에 MySQL 서버로 확장 가능하게 설계한다.
 
 ---
 
@@ -407,55 +407,56 @@ RAG는 카테고리 분류 기준, 예산 판단 규칙, 사용자 지출 관리
 
 ## 9. 프로젝트 폴더 구조 제안
 
+현재 저장소의 실제 구조를 기준으로 정리하면 아래와 같습니다.
+
 ```text
-smart-receipt-agent/
-  backend/
-    app/
-      main.py
-      core/
-        config.py
-      api/
-        receipt_router.py
-        expense_router.py
-        budget_router.py
-      schemas/
-        receipt_schema.py
-        expense_schema.py
-        budget_schema.py
-      models/
-        expense_model.py
-        budget_model.py
-      services/
-        receipt_service.py
-        budget_service.py
-        notion_service.py
-        rag_service.py
-      agents/
-        expense_graph.py
-        nodes.py
-        state.py
-      db/
-        database.py
-        init_db.py
-      rag_docs/
-        category_rules.md
-        budget_rules.md
-      tests/
-        test_receipt_api.py
-    requirements.txt
-    .env.example
+ReceiptMngAgentProject/
+  backend/                           # FastAPI 백엔드 서비스 루트
+    .env                             # 환경변수 설정 파일
+    main.py                          # FastAPI 앱 진입점
+    requirements.txt                 # Python 의존성 목록
+    app/                             # 애플리케이션 핵심 패키지
+      main.py                        # app.main 진입용 래퍼 파일
+      rag_docs/                      # RAG 분류용 문서 저장소
+      services/                      # RAG 서비스 모듈
+        rag_build.py                 # Chroma/벡터 DB 빌드 스크립트
+        rag_service.py               # RAG 검색 및 분류 서비스
+      vector_store/                  # 임베딩 벡터 저장소
+    db/                              # 로컬 DB 저장/조회 관련 모듈
+      aws_test.py                    # AWS/DB 연동 테스트 스크립트
+      aws_test설명서.md              # AWS 테스트 설명서
+      check_budget.py                # 예산 상태 확인 로직
+      CREATE_INSTRUCTIONS.md         # DB 생성 가이드
+      PROJECT_DB_SPEC.md             # DB 설계 명세
+      receipt_agent.db               # SQLite 로컬 DB 파일
+      receipt_agent_v4.py            # DB 처리/실험용 버전 모듈
+      save_local_db.py               # 영수증 데이터 저장/조회 핵심 모듈
+      save_local_db설명서.md         # 저장/조회 설명서
+      test_db_budget.py              # 예산 로직 테스트 코드
+    notion/                          # Notion 연동 모듈
+      env_healthcheck.py            # 환경변수/Notion 인증 체크
+      env_loader.py                 # .env 로딩 로직
+      notion_api.py                 # Notion 테스트용 API 진입점
+      notion_client.py              # Notion API 호출 구현
+      notion_config.py              # Notion 설정 로드
+      notion_constants.py           # Notion 속성/상태 상수 정의
+      notion_models.py              # ExpenseRecord/응답 모델 정의
+      notion_payload.py             # Notion DB payload 생성
+      notion_record_agent.py        # Notion 기록 에이전트 흐름
+      notion_text.py                # Notion 본문/제목 생성 유틸리티
+      README.md                     # Notion 모듈 설명서
 
-  frontend/
-    streamlit_app.py
-    requirements.txt
+  frontend/                         # Streamlit 프런트엔드 앱 루트
+    app.py                          # 메인 Streamlit 화면 진입점
+    README.md                       # 프런트엔드 사용 설명서
+    pages/                          # 페이지 컴포넌트 디렉터리
+      admin_app.py                  # 관리자 대시보드 페이지
+    receit_img/                     # 예시 영수증 이미지 저장소
 
-  docs/
-    ai_instruction.md
-    api_spec.md
-    db_design.md
-
-  README.md
+  README.md                         # 프로젝트 소개/실행 가이드
+  receipt_agent_ai_instruction.md   # AI 개발 지시서 문서
 ```
+> 참고: 현재 프로젝트는 기존 제안안처럼 `backend/app/api/`, `backend/app/models/` 같은 구조를 완전히 분리하지 않고, `backend/main.py`를 진입점으로 하면서 `backend/app/`, `backend/db/`, `backend/notion/` 폴더를 중심으로 구성되어 있습니다.
 
 ---
 
@@ -467,16 +468,25 @@ smart-receipt-agent/
 APP_NAME=Smart Receipt Expense Agent
 ENV=local
 
-DATABASE_URL=sqlite:///./receipt_agent.db
+DATABASE_URL=mysql:///./receipt_agent.db
 
 OPENAI_API_KEY=your-openai-api-key
 OPENAI_MODEL=gpt-4o-mini
 EMBEDDING_MODEL=text-embedding-3-small
 
+AWS_MYSQL_HOST=localhost
+AWS_MYSQL_PORT=3306
+AWS_MYSQL_USER=""
+AWS_MYSQL_PASSWORD=""
+AWS_MYSQL_DATABASE=""
+
 NOTION_API_KEY=your-notion-api-key
 NOTION_DATABASE_ID=your-notion-database-id
 
 VECTOR_DB_PATH=./vector_store
+
+UPSTAGE_API_KEY=up_2EeRe2j44CkTfbXP3DI1KcGYDENuh
+
 ```
 
 ---
@@ -622,7 +632,7 @@ MVP 이후 다음 기능을 추가할 수 있다.
 1. 위 폴더 구조를 기준으로 프로젝트 기본 파일을 생성한다.
 2. FastAPI 서버가 실행되도록 `main.py`를 만든다.
 3. `/health` API를 만든다.
-4. SQLite 연결 설정을 만든다.
+4. MySQL 연결 설정을 만든다.
 5. expenses, budgets 관련 SQLAlchemy 모델을 만든다.
 6. `/api/receipts/analyze` API를 더미 응답으로 먼저 구현한다.
 7. Streamlit에서 FastAPI API를 호출하는 기본 화면을 만든다.
