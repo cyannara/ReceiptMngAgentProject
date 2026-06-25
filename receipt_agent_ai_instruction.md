@@ -416,7 +416,6 @@ ReceiptMngAgentProject/
     main.py                          # FastAPI 앱 진입점
     requirements.txt                 # Python 의존성 목록
     app/                             # 애플리케이션 핵심 패키지
-      main.py                        # app.main 진입용 래퍼 파일
       rag_docs/                      # RAG 분류용 문서 저장소
       services/                      # RAG 서비스 모듈
         rag_build.py                 # Chroma/벡터 DB 빌드 스크립트
