@@ -73,6 +73,7 @@ $env:AWS_MYSQL_DATABASE=
     addr: str                # 상점 주소 (변수명 address -> addr 변경) 
     tel: str                 # 상점 전화번호 (TELL) 
     reg_date: str            # 🌟 신규 추가: 등록일시 (REG_DATE) 
+    user_id                  # 노션 링크 매핑 아이디
     
 
 ### 카테고리 분류 RAG 생성
