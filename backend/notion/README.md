@@ -139,3 +139,11 @@ uvicorn notion_api:app --reload --app-dir 01
 
 - 다른 팀원이 맡은 OCR, 텍스트 분석, 카테고리 분류, 예산평가 코드는 여기에 넣지 않는다.
 - 이 파일은 Notion 기록 전용 문서다.
+
+
+ExpenseGraph (여기서 streamlit run app.py 실행)
+│  app.py  <-- 메인 일반 사용자 페이지 (http://localhost:8501)
+│  save_local_db.py
+│  ...
+└─pages    <-- 💡 반드시 이 이름으로 폴더를 생성해야 합니다.
+       admin_app.py  <-- 관리자 페이지 (http://localhost:8501/admin)
