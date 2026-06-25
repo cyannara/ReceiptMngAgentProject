@@ -15,7 +15,7 @@
 반드시 `ReceiptMngAgentProject/backend` 폴더에서 실행한다.
 
 ```bash
-cd /Users/shinsaebom/EDA/LangGraph/GITHUB/ReceiptMngAgentProject/backend
+cd ~/ReceiptMngAgentProject/backend
 ```
 
 ## 2. 가상환경 활성화
@@ -87,10 +87,6 @@ http://127.0.0.1:8000/docs
 
 만약 `Address already in use`가 나오면 8000번 포트를 이미 다른 서버가 쓰는 상태다. 이때는 다른 포트로 실행한다.
 
-```bash
-python -m uvicorn notion_api:app --reload --port 8001
-```
-
 브라우저 접속 주소도 포트에 맞춰 바꾼다.
 
 ```text
@@ -99,8 +95,6 @@ http://127.0.0.1:8001/docs
 
 ## 6. Swagger에서 기록 테스트
 
-Swagger 화면에서 아래 순서대로 실행한다.
-
 1. `GET /health/keys`
    - OpenAI / Notion 키가 정상인지 확인한다.
 2. `POST /notion/test-record`
@@ -108,7 +102,7 @@ Swagger 화면에서 아래 순서대로 실행한다.
 
 성공하면 응답에 `ok: true`, `message: "Notion 페이지 생성 완료"`, `page_url`이 나온다.
 
-## 7. 터미널에서 바로 기록 테스트
+## 7. 터미널에서 바로 기록 테스트(더미 데이터 테스트용: 주의바람!)
 
 FastAPI를 띄우지 않고 샘플 데이터 1건만 바로 기록하려면 아래 명령을 실행한다.
 
@@ -171,7 +165,7 @@ python -m notion_record_agent
 `backend` 폴더 밖에서 실행했거나 editable 설치가 안 된 경우다.
 
 ```bash
-cd /Users/shinsaebom/EDA/LangGraph/GITHUB/ReceiptMngAgentProject/backend
+cd ~/ReceiptMngAgentProject/backend
 python -m pip install -e .
 python -m notion.env_healthcheck
 ```
