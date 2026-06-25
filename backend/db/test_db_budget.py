@@ -2,8 +2,8 @@ import tempfile
 import unittest
 from datetime import datetime
 
-from check_budget import check_budget
-from save_local_db import ensure_schema, get_connection, save_local_db
+from backend.db.check_budget import check_budget
+from backend.db.save_local_db import ensure_schema, get_connection, save_local_db
 
 
 class ReceiptDbBudgetTests(unittest.TestCase):

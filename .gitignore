@@ -3,3 +3,39 @@ backend/main_test.py
 .env.*
 !.env.example
 .DS_Store
+
+
+# --- 파이썬 & 환경 ---
+__pycache__/
+*.py[cod]
+venv/
+.env
+.env.*
+!.env.example
+
+# --- PyTorch/ML 모델 및 데이터 ---
+*.pt
+*.pth
+*.tar
+data/
+datasets/
+
+# --- 빌드, 로그 및 OS ---
+build/
+*.egg-info/
+wandb/
+tensorboard/
+
+
+.pytest_cache/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+pytest.ini
+tests/
+app/vector_store/
+.venv/
+
+vector_store/

@@ -20,16 +20,13 @@ parent_dir = os.path.dirname(current_dir)                 # C:.../ExpenseGraph
 if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
-# 이제 DB 직접 조회가 아니므로 기본 타겟 상수(DEFAULT_DB_TARGET)만 가져옵니다.
-from save_local_db import DEFAULT_DB_TARGET
-
 st.set_page_config(page_title="영수증 관리자", layout="wide")
 
 
 # =========================================================================
 # 백엔드 API 연동 함수 (기존 로컬 DB 직접 조회 로직 대체)
 # =========================================================================
-def load_dashboard_data(db_target: str, **filters) -> dict:
+def load_dashboard_data(**filters) -> dict:
     """
     로컬 DB를 직접 찌르지 않고, FastAPI 백엔드 서버로 요청을 위임하여 
     가공된 대시보드 데이터를 원격으로 수신합니다.
@@ -38,7 +35,6 @@ def load_dashboard_data(db_target: str, **filters) -> dict:
     
     # API 규격에 맞춰 날짜 객체 문자열 변환 및 파라미터 패킹
     payload = {
-        "db_target": db_target,
         "start_date": str(filters.get("start_date")) if filters.get("start_date") else None,
         "end_date": str(filters.get("end_date")) if filters.get("end_date") else None,
         "category": filters.get("category")
@@ -157,9 +153,6 @@ def main() -> None:
     st.caption("어드민 화면의 모든 DB 쿼리 연동 처리가 백엔드 API 레이어로 일원화되었습니다.")
 
     with st.sidebar:
-        st.header("⚙️ 데이터베이스 구성")
-        db_target = st.text_input("Database URL / File Target", value=DEFAULT_DB_TARGET)
-
         st.header("🔍 검색 필터링 조건")
         today = date.today()
         start_date = st.date_input("시작일", today - timedelta(days=30))
@@ -176,7 +169,7 @@ def main() -> None:
     }
 
     # API를 통해 백엔드 데이터 서빙 수신
-    data = load_dashboard_data(db_target=db_target, **filters)
+    data = load_dashboard_data(**filters)
     rows = data["rows"]
     summary = _summary(rows)
 

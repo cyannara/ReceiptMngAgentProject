@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 
 if TYPE_CHECKING:
 	# Optional type-only import so save_local_db can align with backend state keys.
-	from backend.app.main import ReceiptAgentState
+	from backend.main import ReceiptAgentState
 
 try:
 	import pymysql

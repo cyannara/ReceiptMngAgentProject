@@ -1,4 +1,4 @@
-# AI 기반 영수증 지출 관리 에이전트 MVP 개발 지시서
+# AI 기반 영수증 지출 관리 에이전트 개발 지시서
 
 ## 1. 프로젝트 개요
 
@@ -18,7 +18,7 @@
 - Python
 - FastAPI
 - SQLAlchemy
-- MariaDB
+- MySQL
 - Pydantic
 - Uvicorn
 
@@ -47,7 +47,7 @@
 
 ---
 
-## 3. MVP 핵심 기능
+## 3. 핵심 기능
 
 ### 3.1 영수증 데이터 입력
 사용자는 다음 방식 중 하나로 영수증 데이터를 입력한다.
@@ -109,14 +109,12 @@ AI는 영수증 내용을 기반으로 지출 카테고리를 분류한다.
 기본 카테고리 예시는 다음과 같다.
 
 - 식비
-- 카페/간식
 - 교통
-- 쇼핑
-- 생활용품
-- 의료
-- 교육
-- 문화/여가
-- 업무비
+- 숙박
+- 일비
+- 항공
+- 배송비
+- 회의비
 - 기타
 
 카테고리 판단 기준은 RAG 문서로 관리할 수 있다.
@@ -147,17 +145,13 @@ AI 응답에는 다음 정보를 포함한다.
 ---
 
 ### 3.5 로컬 DB 저장
-분석된 지출 정보는 로컬 DB에 저장한다.
 
-초기 MVP에서는 SQLite를 사용하고, 이후 PostgreSQL로 확장 가능하게 설계한다.
+초기 MVP에서는 분석된 지출 정보는 로컬 DB에 저장하고  SQLite를 사용하고, 준비되면 AWS EC2서버에 MySQL 서버로 확장 가능하게 설계한다.
 
 ---
 
 ### 3.6 Notion 기록
 분석이 완료된 지출 내역을 Notion 데이터베이스에 기록한다.
-
-Notion 연동은 MVP에서 선택 기능으로 구현한다.
-
 환경변수에 Notion API 정보가 없으면 로컬 DB 저장까지만 수행한다.
 
 ---
@@ -345,14 +339,19 @@ POST /api/budgets
 |---|---|---|
 | id | integer | PK |
 | user_id | varchar | 사용자 ID |
-| store_name | varchar | 가맹점명 |
-| purchased_at | datetime | 결제일시 |
-| total_amount | integer | 총 금액 |
+| merchant | varchar | 가맹점명 |
+| spent_at | datetime | 결제일시 |
+| amount | integer | 총 금액 |
 | payment_method | varchar | 결제수단 |
 | category | varchar | 카테고리 |
 | memo | text | 메모 |
-| raw_text | text | 원본 영수증 텍스트 |
+| items | text | 원본 영수증 텍스트 |
 | notion_page_id | varchar | Notion 페이지 ID |
+| reg_date | datetime | 생성일 |
+| addr | varchar | 주소 |
+| tel | varchar | 전화번호 |
+| detected_people_count | int | 인원수 |
+| per_person_amount | int | 개별금액 |
 | created_at | datetime | 생성일 |
 
 ### expense_items
