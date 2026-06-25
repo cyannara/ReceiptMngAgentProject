@@ -416,11 +416,17 @@ ReceiptMngAgentProject/
     main.py                          # FastAPI 앱 진입점
     requirements.txt                 # Python 의존성 목록
     app/                             # 애플리케이션 핵심 패키지
+      __init__.py                    # 패키지 초기화
       rag_docs/                      # RAG 분류용 문서 저장소
       services/                      # RAG 서비스 모듈
+        __init__.py                  # 패키지 초기화
         rag_build.py                 # Chroma/벡터 DB 빌드 스크립트
         rag_service.py               # RAG 검색 및 분류 서비스
       vector_store/                  # 임베딩 벡터 저장소
+    ocr/                              # OCR 및 LangGraph 워크플로우 모듈
+      __init__.py                    # 패키지 초기화
+      ocr_service.py                 # GPT / Upstage OCR 실행 로직
+      receipt_workflow.py            # 영수증 분석 LangGraph 워크플로우 정의
     db/                              # 로컬 DB 저장/조회 관련 모듈
       aws_test.py                    # AWS/DB 연동 테스트 스크립트
       aws_test설명서.md              # AWS 테스트 설명서
@@ -433,6 +439,7 @@ ReceiptMngAgentProject/
       save_local_db설명서.md         # 저장/조회 설명서
       test_db_budget.py              # 예산 로직 테스트 코드
     notion/                          # Notion 연동 모듈
+      __init__.py                    # 패키지 초기화
       env_healthcheck.py            # 환경변수/Notion 인증 체크
       env_loader.py                 # .env 로딩 로직
       notion_api.py                 # Notion 테스트용 API 진입점
@@ -485,6 +492,7 @@ NOTION_DATABASE_ID=your-notion-database-id
 VECTOR_DB_PATH=./vector_store
 
 UPSTAGE_API_KEY=up_2EeRe2j44CkTfbXP3DI1KcGYDENuh
+UPSTAGE_DOCUMENT_PARSER_URL="https://api.upstage.ai/v1/document-digitization"
 
 ```
 
